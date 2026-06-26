@@ -28,7 +28,7 @@ a:hover{text-decoration:underline}
 .fifa-link:hover{background:#16a34a;text-decoration:none}
 
 /* ── Tabs ── */
-.tabs{background:#141b2d;border-bottom:1px solid #2d3a52;display:flex;gap:0;overflow-x:auto;padding:0 20px}
+.tabs{background:#141b2d;border-bottom:1px solid #2d3a52;display:flex;gap:0;overflow-x:auto;padding:0 20px;position:sticky;top:0;z-index:99}
 .tab{padding:11px 18px;font-size:14px;font-weight:500;color:#94a3b8;cursor:pointer;border-bottom:2px solid transparent;white-space:nowrap;transition:all .2s}
 .tab:hover{color:#e2e8f0}
 .tab.active{color:#60a5fa;border-bottom-color:#3b82f6}
@@ -730,14 +730,18 @@ const MATCHES = [
   {id:110,gr:'-',md:'R32',kickoff:'2026-07-02T21:00:00Z',home:'TBD',away:'TBD',venue:''},
   {id:111,gr:'-',md:'R32',kickoff:'2026-07-03T17:00:00Z',home:'TBD',away:'TBD',venue:''},
   {id:112,gr:'-',md:'R32',kickoff:'2026-07-03T21:00:00Z',home:'TBD',away:'TBD',venue:''},
-  {id:113,gr:'-',md:'R16',kickoff:'2026-07-04T17:00:00Z',home:'TBD',away:'TBD',venue:''},
-  {id:114,gr:'-',md:'R16',kickoff:'2026-07-04T21:00:00Z',home:'TBD',away:'TBD',venue:''},
-  {id:115,gr:'-',md:'R16',kickoff:'2026-07-05T17:00:00Z',home:'TBD',away:'TBD',venue:''},
-  {id:116,gr:'-',md:'R16',kickoff:'2026-07-05T21:00:00Z',home:'TBD',away:'TBD',venue:''},
+  {id:113,gr:'-',md:'R32',kickoff:'2026-07-04T17:00:00Z',home:'TBD',away:'TBD',venue:''},
+  {id:114,gr:'-',md:'R32',kickoff:'2026-07-04T21:00:00Z',home:'TBD',away:'TBD',venue:''},
+  {id:115,gr:'-',md:'R32',kickoff:'2026-07-05T17:00:00Z',home:'TBD',away:'TBD',venue:''},
+  {id:116,gr:'-',md:'R32',kickoff:'2026-07-05T21:00:00Z',home:'TBD',away:'TBD',venue:''},
   {id:117,gr:'-',md:'R16',kickoff:'2026-07-06T17:00:00Z',home:'TBD',away:'TBD',venue:''},
   {id:118,gr:'-',md:'R16',kickoff:'2026-07-06T21:00:00Z',home:'TBD',away:'TBD',venue:''},
   {id:119,gr:'-',md:'R16',kickoff:'2026-07-07T17:00:00Z',home:'TBD',away:'TBD',venue:''},
   {id:120,gr:'-',md:'R16',kickoff:'2026-07-07T21:00:00Z',home:'TBD',away:'TBD',venue:''},
+  {id:129,gr:'-',md:'R16',kickoff:'2026-07-08T17:00:00Z',home:'TBD',away:'TBD',venue:''},
+  {id:130,gr:'-',md:'R16',kickoff:'2026-07-08T21:00:00Z',home:'TBD',away:'TBD',venue:''},
+  {id:131,gr:'-',md:'R16',kickoff:'2026-07-09T17:00:00Z',home:'TBD',away:'TBD',venue:''},
+  {id:132,gr:'-',md:'R16',kickoff:'2026-07-09T21:00:00Z',home:'TBD',away:'TBD',venue:''},
   {id:121,gr:'-',md:'QF', kickoff:'2026-07-09T21:00:00Z',home:'TBD',away:'TBD',venue:''},
   {id:122,gr:'-',md:'QF', kickoff:'2026-07-10T17:00:00Z',home:'TBD',away:'TBD',venue:''},
   {id:123,gr:'-',md:'QF', kickoff:'2026-07-10T21:00:00Z',home:'TBD',away:'TBD',venue:''},
@@ -925,12 +929,15 @@ async function syncAll() {
       const evTime = new Date(ev.date).getTime();
       const TBD_THRESHOLD = 4 * 60 * 60 * 1000; // 4 hours
       const candidate = MATCHES
-        .filter(lm => lm.home === 'TBD' || lm.away === 'TBD')
+        .filter(lm => lm.home === 'TBD' || lm.away === 'TBD' || lm.home.includes('Winner') || lm.away.includes('Winner'))
         .find(lm => Math.abs(new Date(lm.kickoff).getTime() - evTime) < TBD_THRESHOLD);
       if (candidate) {
-        // Fill in the real team names from ESPN
-        candidate.home = lHome;
-        candidate.away = lAway;
+        // Only overwrite with real team names (not ESPN placeholders like "Round of 32 1 Winner")
+        const isPlaceholder = n => !n || n === 'TBD' || n.includes('Winner') || n.includes('winner');
+        if (!isPlaceholder(lHome) && !isPlaceholder(lAway)) {
+          candidate.home = lHome;
+          candidate.away = lAway;
+        }
         match = candidate;
       }
     }
@@ -1098,7 +1105,7 @@ function renderGroupCard(gid) {
 //  RENDER: MATCH CARD
 // ═══════════════════════════════════════════════════════
 function renderMatchCard(m) {
-  const isTBD = m.home === 'TBD';
+  const isTBD = m.home === 'TBD' || !m.home || m.home.includes('Winner');
   const s = scores[m.id];
   const played = s && s.home != null && s.away != null;
   const apiMeta = matchPhases[m.id];
@@ -1716,6 +1723,7 @@ const VENUE_MAP = {
   125:'Dallas (Arlington)', 126:'Atlanta',
   127:'Miami',
   128:'New York/New Jersey',
+  129:'New York/New Jersey', 130:'Los Angeles', 131:'Boston', 132:'San Francisco Bay Area',
 };
 // Apply VENUE_MAP to matches that don't already have a venue
 MATCHES.forEach(function(m) {
@@ -2123,6 +2131,16 @@ renderAll();
 setInterval(renderCountdown, 60000);
 startPolling();
 setTimeout(syncAll, 800);
+</script>
+
+<script>
+function syncTabsTop() {
+  const hdr = document.querySelector('.header');
+  const tabs = document.querySelector('.tabs');
+  if (hdr && tabs) tabs.style.top = hdr.offsetHeight + 'px';
+}
+document.addEventListener('DOMContentLoaded', function() { syncTabsTop(); });
+window.addEventListener('resize', syncTabsTop);
 </script>
 </body>
 </html>
