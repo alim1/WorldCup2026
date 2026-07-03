@@ -732,6 +732,7 @@ const MATCHES = [
   {id:112,gr:'-',md:'R32',kickoff:'2026-07-03T21:00:00Z',home:'TBD',away:'TBD',venue:''},
   {id:133,gr:'-',md:'R32',kickoff:'2026-07-01T01:00:00Z',home:'TBD',away:'TBD',venue:''},
   {id:134,gr:'-',md:'R32',kickoff:'2026-07-02T00:00:00Z',home:'TBD',away:'TBD',venue:''},
+  {id:135,gr:'-',md:'R32',kickoff:'2026-07-03T03:00:00Z',home:'Switzerland',away:'Algeria',venue:''},
   {id:113,gr:'-',md:'R16',kickoff:'2026-07-04T17:00:00Z',home:'TBD',away:'TBD',venue:''},
   {id:114,gr:'-',md:'R16',kickoff:'2026-07-04T21:00:00Z',home:'TBD',away:'TBD',venue:''},
   {id:115,gr:'-',md:'R16',kickoff:'2026-07-05T17:00:00Z',home:'TBD',away:'TBD',venue:''},
@@ -954,7 +955,7 @@ async function syncAll() {
 
     matchPhases[match.id] = { phase: done ? 'FT' : (state === 'in' ? 'live' : null), elapsed: detail };
     // Penalty shootout: detect from status detail and capture winner
-    if (done && detail && /pen/i.test(detail)) {
+    if (done && (hc.winner !== undefined) && (hc.winner !== ac.winner) && hs === as_) {
       const homeIsLHome = (match.home === lHome);
       const homeWon = homeIsLHome ? !!(hc.winner) : !!(ac.winner);
       penaltyWinners[match.id] = homeWon ? 'home' : 'away';
@@ -1740,6 +1741,23 @@ const VENUE_MAP = {
   127:'Miami',
   128:'New York/New Jersey',
 };
+
+// ── Known penalty shootout results (team-name based, order-independent) ──────
+const KNOWN_PENALTY_RESULTS = [
+  { teams:['Paraguay','Germany'], winner:'Paraguay' },
+];
+function applyKnownPenaltyResults() {
+  KNOWN_PENALTY_RESULTS.forEach(function(kpr) {
+    var m = MATCHES.find(function(x) {
+      return (x.home === kpr.teams[0] && x.away === kpr.teams[1]) ||
+             (x.home === kpr.teams[1] && x.away === kpr.teams[0]);
+    });
+    if (!m) return;
+    var winnerSide = (m.home === kpr.winner) ? 'home' : 'away';
+    penaltyWinners[m.id] = winnerSide;
+  });
+}
+applyKnownPenaltyResults();
 // Apply VENUE_MAP to matches that don't already have a venue
 MATCHES.forEach(function(m) {
   if (!m.venue && VENUE_MAP[m.id]) m.venue = VENUE_MAP[m.id];
