@@ -719,7 +719,7 @@ const MATCHES = [
   {id:72,gr:'L',md:3,kickoff:'2026-06-28T00:00:00Z',home:'Ghana',          away:'Croatia',           venue:''},
   // ── Knockout (TBD) ────────────────────────────────────
   {id:101,gr:'-',md:'R32',kickoff:'2026-06-28T17:00:00Z',home:'TBD',away:'TBD',venue:''},
-  {id:102,gr:'-',md:'R32',kickoff:'2026-06-28T21:00:00Z',home:'TBD',away:'TBD',venue:''},
+  {id:102,gr:'-',md:'R32',kickoff:'2026-06-28T21:00:00Z',home:'Netherlands',away:'Morocco',venue:'Seattle'},
   {id:103,gr:'-',md:'R32',kickoff:'2026-06-29T17:00:00Z',home:'TBD',away:'TBD',venue:''},
   {id:104,gr:'-',md:'R32',kickoff:'2026-06-29T21:00:00Z',home:'TBD',away:'TBD',venue:''},
   {id:105,gr:'-',md:'R32',kickoff:'2026-06-30T17:00:00Z',home:'TBD',away:'TBD',venue:''},
@@ -774,6 +774,7 @@ const VENUES = [
 // ═══════════════════════════════════════════════════════
 let scores      = {};   // { matchId: { home, away } }
 let matchPhases = {};   // { matchId: { phase:'FT'|'live'|null, elapsed:str } }
+let penaltyWinners = {}; // { matchId: 'home'|'away' } — knockout matches decided by penalties
 let matchEvents = {};   // { matchId: [{type,minute,team,player,extra}] }
 let matchStats  = {};   // { matchId: {home:{...}, away:{...}} }
 let matchLineups= {};   // { matchId: {home:[players], away:[players]} }
@@ -792,6 +793,7 @@ function load() {
     const ls     = localStorage.getItem('wc2026_lastsync');
     lastSyncTime = ls ? new Date(ls) : null;
     matchEvents  = JSON.parse(localStorage.getItem('wc2026_events')  || '{}');
+    penaltyWinners = JSON.parse(localStorage.getItem('wc2026_pens') || '{}');
     matchStats   = JSON.parse(localStorage.getItem('wc2026_stats')   || '{}');
     matchLineups = JSON.parse(localStorage.getItem('wc2026_lineups') || '{}');
     // Convert any old integer keys
@@ -804,6 +806,7 @@ function saveScores() {
   try {
     localStorage.setItem('wc2026_scores',  JSON.stringify(scores));
     localStorage.setItem('wc2026_events',  JSON.stringify(matchEvents));
+    localStorage.setItem('wc2026_pens',   JSON.stringify(penaltyWinners));
     localStorage.setItem('wc2026_stats',   JSON.stringify(matchStats));
     localStorage.setItem('wc2026_lineups', JSON.stringify(matchLineups));
   } catch(e) {}
@@ -950,6 +953,12 @@ async function syncAll() {
     if (isNaN(hs) || isNaN(as_)) continue;
 
     matchPhases[match.id] = { phase: done ? 'FT' : (state === 'in' ? 'live' : null), elapsed: detail };
+    // Penalty shootout: detect from status detail and capture winner
+    if (done && detail && /pen/i.test(detail)) {
+      const homeIsLHome = (match.home === lHome);
+      const homeWon = homeIsLHome ? !!(hc.winner) : !!(ac.winner);
+      penaltyWinners[match.id] = homeWon ? 'home' : 'away';
+    }
     // Correct kickoff time from ESPN (fixes venue-timezone errors in static data)
     if (ev.date) match.kickoff = ev.date;
     // Capture venue city and ESPN event ID
@@ -1579,8 +1588,17 @@ function calcTeamPoints(team) {
     if (!isHome && !isAway) continue;
     var myScore  = isHome ? s.home : s.away;
     var oppScore = isHome ? s.away : s.home;
-    if (myScore > oppScore) pts += 3;
-    else if (myScore === oppScore) pts += 1;
+    if (myScore > oppScore) {
+      pts += 3;
+    } else if (myScore === oppScore) {
+      // Knockout draw resolved by penalties
+      var penW = penaltyWinners[m.id];
+      if (penW) {
+        pts += ((isHome && penW === 'home') || (isAway && penW === 'away')) ? 3 : 0;
+      } else {
+        pts += 1; // Group stage draw
+      }
+    }
   }
   return pts;
 }
