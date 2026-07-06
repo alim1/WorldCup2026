@@ -685,7 +685,7 @@ const MATCHES = [
   {id:72,gr:'L',md:3,kickoff:'2026-06-28T00:00:00Z',home:'Ghana',          away:'Croatia',           venue:''},
   // ── Knockout (TBD) ────────────────────────────────────
   {id:101,gr:'-',md:'R32',kickoff:'2026-06-28T17:00:00Z',home:'TBD',away:'TBD',venue:''},
-  {id:102,gr:'-',md:'R32',kickoff:'2026-06-28T21:00:00Z',home:'TBD',away:'TBD',venue:''},
+  {id:102,gr:'-',md:'R32',kickoff:'2026-06-28T21:00:00Z',home:'Netherlands',away:'Morocco',venue:'Seattle'},
   {id:103,gr:'-',md:'R32',kickoff:'2026-06-29T17:00:00Z',home:'TBD',away:'TBD',venue:''},
   {id:104,gr:'-',md:'R32',kickoff:'2026-06-29T21:00:00Z',home:'TBD',away:'TBD',venue:''},
   {id:105,gr:'-',md:'R32',kickoff:'2026-06-30T17:00:00Z',home:'TBD',away:'TBD',venue:''},
@@ -698,10 +698,11 @@ const MATCHES = [
   {id:112,gr:'-',md:'R32',kickoff:'2026-07-03T21:00:00Z',home:'TBD',away:'TBD',venue:''},
   {id:133,gr:'-',md:'R32',kickoff:'2026-07-01T01:00:00Z',home:'TBD',away:'TBD',venue:''},
   {id:134,gr:'-',md:'R32',kickoff:'2026-07-02T00:00:00Z',home:'TBD',away:'TBD',venue:''},
+  {id:135,gr:'-',md:'R32',kickoff:'2026-07-03T03:00:00Z',home:'Switzerland',away:'Algeria',venue:''},
   {id:113,gr:'-',md:'R16',kickoff:'2026-07-04T17:00:00Z',home:'TBD',away:'TBD',venue:''},
   {id:114,gr:'-',md:'R16',kickoff:'2026-07-04T21:00:00Z',home:'TBD',away:'TBD',venue:''},
   {id:115,gr:'-',md:'R16',kickoff:'2026-07-05T17:00:00Z',home:'TBD',away:'TBD',venue:''},
-  {id:116,gr:'-',md:'R16',kickoff:'2026-07-05T21:00:00Z',home:'TBD',away:'TBD',venue:''},
+  {id:116,gr:'-',md:'R16',kickoff:'2026-07-05T21:00:00Z',home:'Mexico',away:'England',venue:'Mexico City'},
   {id:117,gr:'-',md:'R16',kickoff:'2026-07-06T17:00:00Z',home:'TBD',away:'TBD',venue:''},
   {id:118,gr:'-',md:'R16',kickoff:'2026-07-06T21:00:00Z',home:'TBD',away:'TBD',venue:''},
   {id:119,gr:'-',md:'R16',kickoff:'2026-07-07T17:00:00Z',home:'TBD',away:'TBD',venue:''},
@@ -740,6 +741,7 @@ const VENUES = [
 // ═══════════════════════════════════════════════════════
 let scores      = {};   // { matchId: { home, away } }
 let matchPhases = {};   // { matchId: { phase:'FT'|'live'|null, elapsed:str } }
+let penaltyWinners = {}; // { matchId: 'home'|'away' } — knockout matches decided by penalties
 let matchEvents = {};   // { matchId: [{type,minute,team,player,extra}] }
 let matchStats  = {};   // { matchId: {home:{...}, away:{...}} }
 let matchLineups= {};   // { matchId: {home:[players], away:[players]} }
@@ -758,6 +760,7 @@ function load() {
     const ls     = localStorage.getItem('wc2026_lastsync');
     lastSyncTime = ls ? new Date(ls) : null;
     matchEvents  = JSON.parse(localStorage.getItem('wc2026_events')  || '{}');
+    penaltyWinners = JSON.parse(localStorage.getItem('wc2026_pens') || '{}');
     matchStats   = JSON.parse(localStorage.getItem('wc2026_stats')   || '{}');
     matchLineups = JSON.parse(localStorage.getItem('wc2026_lineups') || '{}');
     // Convert any old integer keys
@@ -770,6 +773,7 @@ function saveScores() {
   try {
     localStorage.setItem('wc2026_scores',  JSON.stringify(scores));
     localStorage.setItem('wc2026_events',  JSON.stringify(matchEvents));
+    localStorage.setItem('wc2026_pens',   JSON.stringify(penaltyWinners));
     localStorage.setItem('wc2026_stats',   JSON.stringify(matchStats));
     localStorage.setItem('wc2026_lineups', JSON.stringify(matchLineups));
   } catch(e) {}
@@ -916,6 +920,12 @@ async function syncAll() {
     if (isNaN(hs) || isNaN(as_)) continue;
 
     matchPhases[match.id] = { phase: done ? 'FT' : (state === 'in' ? 'live' : null), elapsed: detail };
+    // Penalty shootout: detect from status detail and capture winner
+    if (done && (hc.winner !== undefined) && (hc.winner !== ac.winner) && hs === as_) {
+      const homeIsLHome = (match.home === lHome);
+      const homeWon = homeIsLHome ? !!(hc.winner) : !!(ac.winner);
+      penaltyWinners[match.id] = homeWon ? 'home' : 'away';
+    }
     // Correct kickoff time from ESPN (fixes venue-timezone errors in static data)
     if (ev.date) match.kickoff = ev.date;
     // Capture venue city and ESPN event ID
@@ -1569,13 +1579,30 @@ const VENUE_MAP = {
   101:'Miami',    102:'Seattle',   103:'Houston',  104:'Vancouver',
   105:'Atlanta',  106:'Dallas (Arlington)', 107:'Los Angeles', 108:'Kansas City',
   109:'Philadelphia', 110:'New York/New Jersey', 111:'Boston', 112:'San Francisco Bay Area',
-  113:'Miami',    114:'Seattle',   115:'Houston',  116:'Atlanta',
+  113:'Miami',    114:'Seattle',   115:'Houston',  116:'Mexico City',
   117:'Dallas (Arlington)', 118:'Los Angeles', 119:'Kansas City', 120:'Philadelphia',
   121:'New York/New Jersey', 122:'Boston',   123:'San Francisco Bay Area', 124:'Miami',
   125:'Dallas (Arlington)', 126:'Atlanta',
   127:'Miami',
   128:'New York/New Jersey',
 };
+
+// ── Known penalty shootout results (team-name based, order-independent) ──────
+const KNOWN_PENALTY_RESULTS = [
+  { teams:['Paraguay','Germany'], winner:'Paraguay' },
+];
+function applyKnownPenaltyResults() {
+  KNOWN_PENALTY_RESULTS.forEach(function(kpr) {
+    var m = MATCHES.find(function(x) {
+      return (x.home === kpr.teams[0] && x.away === kpr.teams[1]) ||
+             (x.home === kpr.teams[1] && x.away === kpr.teams[0]);
+    });
+    if (!m) return;
+    var winnerSide = (m.home === kpr.winner) ? 'home' : 'away';
+    penaltyWinners[m.id] = winnerSide;
+  });
+}
+applyKnownPenaltyResults();
 // Apply VENUE_MAP to matches that don't already have a venue
 MATCHES.forEach(function(m) {
   if (!m.venue && VENUE_MAP[m.id]) m.venue = VENUE_MAP[m.id];
