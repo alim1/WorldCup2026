@@ -317,6 +317,34 @@ a:hover{text-decoration:underline}
 .cpred-row-score{font-size:15px;font-weight:700;color:#f1f5f9;min-width:45px}
 .cpred-row-names{flex:1;font-size:12px;color:#94a3b8}
 .cpred-row-count{background:#1e3a52;border:1px solid #3a5a74;border-radius:4px;padding:2px 8px;font-size:12px;color:#60a5fa;font-weight:700}
+
+/* ── Knockout Bracket ── */
+.bkt-outer{padding:8px 0 24px}
+.bkt-wrap{display:flex;align-items:stretch;min-width:1420px;padding:4px 8px;gap:0}
+.bkt-col{display:flex;flex-direction:column;flex:1;min-width:152px;position:relative}
+.bkt-col-sf{min-width:162px}
+.bkt-col-fin{min-width:182px;flex:0 0 182px}
+.bkt-col-hdr{text-align:center;font-size:10px;font-weight:800;color:#475569;text-transform:uppercase;letter-spacing:1.2px;padding:6px 4px 10px;border-bottom:1px solid #1e2d42;margin:0 4px}
+.bkt-col-body{flex:1;display:flex;flex-direction:column;justify-content:space-around;align-items:center;padding:4px 4px;height:740px}
+.bkt-card{background:#111827;border:1px solid #1e2d42;border-radius:8px;width:144px;padding:6px 8px;font-size:12px;transition:border-color .2s}
+.bkt-card:hover{border-color:#3b82f6}
+.bkt-done{border-color:#243044}
+.bkt-active{border-color:#f97316!important;box-shadow:0 0 10px rgba(249,115,22,.25)}
+.bkt-st{font-size:10px;text-align:center;padding-bottom:4px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.bkt-ft{color:#6b7280}
+.bkt-lv{color:#f97316}
+.bkt-up{color:#3b82f6;font-size:9.5px}
+.bkt-row{display:flex;align-items:center;gap:4px;padding:2px 0;color:#94a3b8;min-width:0}
+.bkt-row.bkt-w{color:#f1f5f9;font-weight:700}
+.bkt-row.bkt-l{color:#374151}
+.bkt-fl{font-size:14px;flex-shrink:0;line-height:1}
+.bkt-nm{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.bkt-sc{font-weight:800;font-size:14px;min-width:16px;text-align:right;flex-shrink:0}
+.bkt-row.bkt-w .bkt-sc{color:#f1f5f9}
+.bkt-row.bkt-l .bkt-sc{color:#374151}
+.bkt-row:not(.bkt-w):not(.bkt-l) .bkt-sc{color:#94a3b8}
+.bkt-fin-body{flex:1;display:flex;flex-direction:column;justify-content:center;align-items:center;gap:10px;height:740px}
+.bkt-tp-lbl{font-size:9px;font-weight:700;color:#475569;text-transform:uppercase;letter-spacing:1px;margin-top:4px}
 </style>
 </head>
 <body>
@@ -369,6 +397,7 @@ a:hover{text-decoration:underline}
   <div class="tab" onclick="showTab('about')">About</div>
   <div class="tab" onclick="showTab('trivia')">Trivia</div>
   <div class="tab" onclick="showTab('predictions')">Predictions</div>
+  <div class="tab" onclick="showTab('bracket')">Bracket</div>
 </div>
 
 <!-- ══════════════ MAIN ══════════════ -->
@@ -514,6 +543,7 @@ a:hover{text-decoration:underline}
   </div>
 </div>
   <div id="tab-predictions" class="tab-content" style="display:none"><div id="predictions-content" style="padding:4px 0"></div></div>
+  <div id="tab-bracket" class="tab-content" style="display:none"><div id="bracket-content" class="bkt-outer"></div></div>
 </div>
 
 <!-- ══════════════ MODALS ══════════════ -->
@@ -1494,7 +1524,7 @@ function updateApiBtn(state) {
 // ═══════════════════════════════════════════════════════
 //  TABS & FILTERS
 // ═══════════════════════════════════════════════════════
-const TABS = ['overview','groups','schedule','teams','venues','about','trivia','predictions'];
+const TABS = ['overview','groups','schedule','teams','venues','about','trivia','predictions','bracket'];
 function showTab(name) {
   document.querySelectorAll('.tab-content').forEach(el => el.style.display='none');
   document.querySelectorAll('.tab').forEach((el,i) => el.classList.toggle('active', TABS[i]===name));
@@ -1504,6 +1534,7 @@ function showTab(name) {
   if (name==='venues')   renderVenues();
   if (name==='trivia')   renderTrivia();
   if (name==='predictions') { renderPredictionsTab(); loadAllPredictions(); }
+  if (name==='bracket')     renderBracketTab();
 }
 function filterSchedule(val, btn) {
   scheduleFilter = val;
@@ -1540,6 +1571,7 @@ function renderAll() {
     if (name === 'teams')    renderTeams();
     if (name === 'venues')   renderVenues();
     if (name === 'trivia')   renderTrivia();
+    if (name === 'bracket')  renderBracketTab();
   }
   renderCountdown();
 }
@@ -2244,6 +2276,101 @@ document.addEventListener('keydown', function(e) {
 // ═══════════════════════════════════════════════════════
 //  INIT
 // ═══════════════════════════════════════════════════════
+// ═══════════════════════════════════════════════════════
+//  KNOCKOUT BRACKET
+// ═══════════════════════════════════════════════════════
+function renderBracketTab() {
+  const el = document.getElementById('bracket-content');
+  if (!el) return;
+
+  // Build flag lookup
+  const TFLAGS = {};
+  Object.keys(TEAMS).forEach(k => { TFLAGS[k] = TEAMS[k].flag || '\u{1F3F3}\uFE0F'; });
+  function bFlag(name){ return TFLAGS[name] || '\u{1F3F3}\uFE0F'; }
+
+  function bCard(m) {
+    if (!m) return '<div class="bkt-card" style="visibility:hidden"></div>';
+    const sc = scores[m.id];
+    const ph = matchPhases[m.id];
+    const pw = penaltyWinners[m.id];
+    const kf = formatKickoff(m.kickoff);
+    const ft = ph && ph.phase === 'FT';
+    const lv = ph && ph.phase === 'live';
+    const hScore = sc ? parseInt(sc.home, 10) : NaN;
+    const aScore = sc ? parseInt(sc.away, 10) : NaN;
+    const hW = sc && (hScore > aScore || pw === 'home');
+    const aW = sc && (aScore > hScore || pw === 'away');
+
+    let st = '';
+    if (ft)      st = `<div class="bkt-st bkt-ft">FT${pw ? ' (Pens)' : ''}</div>`;
+    else if (lv) st = `<div class="bkt-st bkt-lv">&#9679; LIVE ${(ph && ph.elapsed)||''}</div>`;
+    else         st = `<div class="bkt-st bkt-up">${kf.date}${kf.time ? ' ' + kf.time : ''}</div>`;
+
+    const hN = (m.home === 'TBD' || !m.home) ? '\u2014' : m.home;
+    const aN = (m.away === 'TBD' || !m.away) ? '\u2014' : m.away;
+
+    return `<div class="bkt-card ${ft ? 'bkt-done' : ''} ${lv ? 'bkt-active' : ''}">
+      ${st}
+      <div class="bkt-row ${hW ? 'bkt-w' : ''} ${!hW && aW ? 'bkt-l' : ''}">
+        <span class="bkt-fl">${bFlag(m.home)}</span>
+        <span class="bkt-nm">${hN}</span>
+        ${sc ? `<span class="bkt-sc">${sc.home}</span>` : ''}
+      </div>
+      <div class="bkt-row ${aW ? 'bkt-w' : ''} ${!aW && hW ? 'bkt-l' : ''}">
+        <span class="bkt-fl">${bFlag(m.away)}</span>
+        <span class="bkt-nm">${aN}</span>
+        ${sc ? `<span class="bkt-sc">${sc.away}</span>` : ''}
+      </div>
+    </div>`;
+  }
+
+  const r32 = MATCHES.filter(m => m.md==='R32').sort((a,b) => new Date(a.kickoff)-new Date(b.kickoff));
+  const r16 = MATCHES.filter(m => m.md==='R16').sort((a,b) => new Date(a.kickoff)-new Date(b.kickoff));
+  const qf  = MATCHES.filter(m => m.md==='QF').sort((a,b) => new Date(a.kickoff)-new Date(b.kickoff));
+  const sf  = MATCHES.filter(m => m.md==='SF').sort((a,b) => new Date(a.kickoff)-new Date(b.kickoff));
+  const tp  = MATCHES.find(m => m.md==='3P');
+  const fin = MATCHES.find(m => m.md==='F');
+
+  // Split into left (feeds SF1) and right (feeds SF2) halves
+  const r32L = r32.slice(0,8),  r32R = r32.slice(8);
+  const r16L = r16.slice(0,4),  r16R = r16.slice(4);
+  const qfL  = qf.slice(0,2),   qfR  = qf.slice(2);
+
+  function col(matches, label, extra) {
+    return `<div class="bkt-col${extra||''}">
+      <div class="bkt-col-hdr">${label}</div>
+      <div class="bkt-col-body">${matches.map(bCard).join('')}</div>
+    </div>`;
+  }
+
+  el.innerHTML = `<div style="overflow-x:auto;padding-bottom:8px">
+    <div class="bkt-wrap">
+      ${col(r32L,'Round of 32')}
+      ${col(r16L,'Round of 16')}
+      ${col(qfL,'Quarter-finals')}
+      <div class="bkt-col bkt-col-sf">
+        <div class="bkt-col-hdr">Semi-finals</div>
+        <div class="bkt-col-body">${bCard(sf[0])}</div>
+      </div>
+      <div class="bkt-col bkt-col-fin">
+        <div class="bkt-col-hdr">Final &amp; 3rd</div>
+        <div class="bkt-fin-body">
+          ${bCard(fin)}
+          <div class="bkt-tp-lbl">3rd Place</div>
+          ${bCard(tp)}
+        </div>
+      </div>
+      <div class="bkt-col bkt-col-sf">
+        <div class="bkt-col-hdr">Semi-finals</div>
+        <div class="bkt-col-body">${bCard(sf[1])}</div>
+      </div>
+      ${col(qfR,'Quarter-finals')}
+      ${col(r16R,'Round of 16')}
+      ${col(r32R,'Round of 32')}
+    </div>
+  </div>`;
+}
+
 load();
 document.getElementById('tzSelect').value = currentTz;
 updateApiBtn();
