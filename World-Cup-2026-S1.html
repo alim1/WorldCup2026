@@ -320,6 +320,28 @@ a:hover{text-decoration:underline}
 .lineup-player.starter { color:#e2e8f0; }
 .lineup-player.subbed-out { text-decoration:line-through; color:#f87171; }
 .lineup-player.subbed-in  { color:#4ade80; }
+/* ── Predictions Tab ── */
+.pred-round-label{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:1.5px;color:#94a3b8;padding:16px 0 8px;border-bottom:1px solid #2d3a52;margin-bottom:12px}
+.pred-match-card{background:#1a2235;border:1px solid #2d3a52;border-radius:10px;padding:14px 16px;margin-bottom:10px}
+.pred-teams-row{display:flex;align-items:center;gap:10px;margin-bottom:8px}
+.pred-team{display:flex;align-items:center;gap:8px;flex:1;min-width:0}
+.pred-team-away{flex-direction:row-reverse;justify-content:flex-start}
+.pred-team-flag{font-size:20px;flex-shrink:0}
+.pred-team-name{font-size:15px;font-weight:600;color:#f1f5f9;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.pred-vs-sep{font-size:13px;color:#64748b;flex-shrink:0;width:30px;text-align:center}
+.pred-match-meta{font-size:12px;color:#64748b;margin-bottom:10px;display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.pred-meta-pill{padding:2px 8px;border-radius:4px;font-size:11px;border:1px solid #2d3a52;background:#111827}
+.pred-meta-pill.green{border-color:#15803d;color:#4ade80;background:#0f2318}
+.pred-meta-pill.gold{border-color:#92400e;color:#fbbf24;background:#1c1408}
+.pred-actions{display:flex;gap:8px;flex-wrap:wrap}
+.cpred-top{background:#0f2318;border:1px solid #15803d;border-radius:8px;padding:14px;text-align:center;margin-bottom:14px}
+.cpred-top-score{font-size:36px;font-weight:800;color:#f1f5f9;letter-spacing:2px}
+.cpred-top-sub{font-size:12px;color:#4ade80;margin-top:4px}
+.cpred-section-label{font-size:11px;text-transform:uppercase;letter-spacing:1px;color:#94a3b8;margin-bottom:8px}
+.cpred-row{display:flex;align-items:center;gap:10px;padding:8px 12px;background:#111827;border-radius:6px;margin-bottom:6px}
+.cpred-row-score{font-size:15px;font-weight:700;color:#f1f5f9;min-width:45px}
+.cpred-row-names{flex:1;font-size:12px;color:#94a3b8}
+.cpred-row-count{background:#1e3a52;border:1px solid #3a5a74;border-radius:4px;padding:2px 8px;font-size:12px;color:#60a5fa;font-weight:700}
 </style>
 </head>
 <body>
@@ -372,6 +394,7 @@ a:hover{text-decoration:underline}
   <div class="tab" onclick="showTab('about')">About</div>
   <div class="tab" onclick="showTab('suzuki')">Suzuki</div>
   <div class="tab" onclick="showTab('trivia')">Trivia</div>
+  <div class="tab" onclick="showTab('predictions')">Predictions</div>
 </div>
 
 <!-- ══════════════ MAIN ══════════════ -->
@@ -524,6 +547,8 @@ a:hover{text-decoration:underline}
     </div>
   </div>
 </div>
+  <div id="tab-predictions" class="tab-content" style="display:none"><div id="predictions-content" style="padding:4px 0"></div></div>
+</div>
 
 <!-- ══════════════ MODALS ══════════════ -->
 
@@ -564,6 +589,45 @@ a:hover{text-decoration:underline}
       <button class="btn btn-clear-score" onclick="clearScore()">Clear</button>
       <button class="btn btn-cancel" onclick="closeScoreModal()">Cancel</button>
       <button class="btn btn-save" onclick="saveScore()">Save</button>
+    </div>
+  </div>
+</div>
+
+<!-- ══ Prediction Input Modal ══ -->
+<div id="pred-modal-bg" class="modal-bg" onclick="if(event.target===this)closePredModal()">
+  <div class="modal score-modal" style="min-width:340px">
+    <h3 id="pred-modal-title" style="margin-bottom:4px"></h3>
+    <p class="score-modal-sub" id="pred-modal-sub"></p>
+    <div class="form-row" style="margin-bottom:14px">
+      <label class="form-label">Your Name</label>
+      <input type="text" id="pred-name-input" class="form-input" placeholder="Enter your name" maxlength="30" style="margin-top:5px">
+    </div>
+    <div class="score-inputs">
+      <div>
+        <div class="score-team-label" id="pred-home-label" style="max-width:100px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap"></div>
+        <input type="number" id="pred-home-score" class="score-input" min="0" max="20" value="1">
+      </div>
+      <div class="score-divider">–</div>
+      <div>
+        <div class="score-team-label" id="pred-away-label" style="max-width:100px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap"></div>
+        <input type="number" id="pred-away-score" class="score-input" min="0" max="20" value="0">
+      </div>
+    </div>
+    <div class="modal-btns">
+      <button class="btn btn-cancel" onclick="closePredModal()">Cancel</button>
+      <button class="btn btn-save" onclick="submitPrediction()">Submit Prediction</button>
+    </div>
+  </div>
+</div>
+
+<!-- ══ Community Predictions Popup ══ -->
+<div id="cpred-modal-bg" class="modal-bg" onclick="if(event.target===this)closeCPredModal()">
+  <div class="modal" style="min-width:380px;max-width:520px;max-height:80vh;overflow-y:auto">
+    <h3 id="cpred-title" style="margin-bottom:4px"></h3>
+    <p class="score-modal-sub" id="cpred-sub"></p>
+    <div id="cpred-content"></div>
+    <div class="modal-btns" style="margin-top:16px">
+      <button class="btn btn-cancel" onclick="closeCPredModal()">Close</button>
     </div>
   </div>
 </div>
@@ -733,6 +797,7 @@ const MATCHES = [
   {id:133,gr:'-',md:'R32',kickoff:'2026-07-01T01:00:00Z',home:'TBD',away:'TBD',venue:''},
   {id:134,gr:'-',md:'R32',kickoff:'2026-07-02T00:00:00Z',home:'TBD',away:'TBD',venue:''},
   {id:135,gr:'-',md:'R32',kickoff:'2026-07-03T03:00:00Z',home:'Switzerland',away:'Algeria',venue:''},
+  {id:136,gr:'-',md:'R32',kickoff:'2026-07-04T01:30:00Z',home:'Colombia',away:'Ghana',venue:'Kansas City'},
   {id:113,gr:'-',md:'R16',kickoff:'2026-07-04T17:00:00Z',home:'TBD',away:'TBD',venue:''},
   {id:114,gr:'-',md:'R16',kickoff:'2026-07-04T21:00:00Z',home:'TBD',away:'TBD',venue:''},
   {id:115,gr:'-',md:'R16',kickoff:'2026-07-05T17:00:00Z',home:'TBD',away:'TBD',venue:''},
@@ -744,7 +809,7 @@ const MATCHES = [
   {id:121,gr:'-',md:'QF', kickoff:'2026-07-09T20:00:00Z',home:'France',away:'Morocco',venue:'Boston'},
   {id:122,gr:'-',md:'QF', kickoff:'2026-07-11T21:00:00Z',home:'TBD',away:'TBD',venue:''},
   {id:123,gr:'-',md:'QF', kickoff:'2026-07-10T19:00:00Z',home:'Spain',away:'Belgium',venue:'Los Angeles'},
-  {id:124,gr:'-',md:'QF', kickoff:'2026-07-12T21:00:00Z',home:'TBD',away:'TBD',venue:''},
+  {id:124,gr:'-',md:'QF', kickoff:'2026-07-12T21:00:00Z',home:'Argentina',away:'Switzerland',venue:'Miami'},
   {id:125,gr:'-',md:'SF', kickoff:'2026-07-14T21:00:00Z',home:'TBD',away:'TBD',venue:''},
   {id:126,gr:'-',md:'SF', kickoff:'2026-07-15T21:00:00Z',home:'TBD',away:'TBD',venue:''},
   {id:127,gr:'-',md:'3P', kickoff:'2026-07-18T17:00:00Z',home:'TBD',away:'TBD',venue:'Miami'},
@@ -1463,7 +1528,7 @@ function updateApiBtn(state) {
 // ═══════════════════════════════════════════════════════
 //  TABS & FILTERS
 // ═══════════════════════════════════════════════════════
-const TABS = ['overview','groups','schedule','teams','venues','about','suzuki','trivia'];
+const TABS = ['overview','groups','schedule','teams','venues','about','suzuki','trivia','predictions'];
 function showTab(name) {
   document.querySelectorAll('.tab-content').forEach(el => el.style.display='none');
   document.querySelectorAll('.tab').forEach((el,i) => el.classList.toggle('active', TABS[i]===name));
@@ -1473,6 +1538,7 @@ function showTab(name) {
   if (name==='venues')   renderVenues();
   if (name==='suzuki')   renderSuzuki();
   if (name==='trivia')   renderTrivia();
+  if (name==='predictions') { renderPredictionsTab(); loadAllPredictions(); }
 }
 function filterSchedule(val, btn) {
   scheduleFilter = val;
@@ -1734,12 +1800,13 @@ const VENUE_MAP = {
   101:'Miami',    102:'Seattle',   103:'Houston',  104:'Vancouver',
   105:'Atlanta',  106:'Dallas (Arlington)', 107:'Los Angeles', 108:'Kansas City',
   109:'Philadelphia', 110:'New York/New Jersey', 111:'Boston', 112:'San Francisco Bay Area',
-  113:'Miami',    114:'Seattle',   115:'Houston',  116:'Mexico City',
+  113:'Miami',       114:'Seattle',   115:'Houston',  116:'Mexico City',
   117:'Dallas (Arlington)', 118:'Los Angeles', 119:'Kansas City', 120:'Philadelphia',
   121:'Boston',             122:'Boston',   123:'Los Angeles',            124:'Miami',
   125:'Dallas (Arlington)', 126:'Atlanta',
   127:'Miami',
   128:'New York/New Jersey',
+  136:'Kansas City',
 };
 
 // ── Known penalty shootout results (team-name based, order-independent) ──────
@@ -2153,6 +2220,181 @@ function closeMatchModal(e) {
     delete document._mdpEscHandler;
   }
 }
+
+// ═══════════════════════════════════════════════════════
+//  PREDICTIONS — Supabase backend
+// ═══════════════════════════════════════════════════════
+const SB_URL = 'https://xrfjbgwcmpnofamdgxsx.supabase.co';
+const SB_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InhyZmpiZ3djbXBub2ZhbWRneHN4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODM2MjQ5MTcsImV4cCI6MjA5OTIwMDkxN30.lSml7Q1zVN51qoemcIpnPsvs7Nspm85AdO92OE058Rc';
+const SB_HEADERS = {
+  'apikey': SB_KEY,
+  'Authorization': 'Bearer ' + SB_KEY,
+  'Content-Type': 'application/json',
+};
+
+let predData = {}; // { matchId: [{name, home, away}] } — populated from Supabase
+let predModalMatchId = null;
+
+async function loadAllPredictions() {
+  try {
+    const r = await fetch(SB_URL + '/rest/v1/wc2026_predictions?select=*', { headers: SB_HEADERS });
+    if (!r.ok) return;
+    const rows = await r.json();
+    predData = {};
+    rows.forEach(function(row) {
+      if (!predData[row.match_id]) predData[row.match_id] = [];
+      predData[row.match_id].push({ name: row.name, home: row.home_score, away: row.away_score });
+    });
+    renderPredictionsTab();
+  } catch(e) { console.warn('Predictions load failed:', e); }
+}
+
+function openPredModal(matchId) {
+  const m = MATCHES.find(function(x){ return x.id === matchId; });
+  if (!m) return;
+  predModalMatchId = matchId;
+  document.getElementById('pred-modal-title').textContent = m.home + ' vs ' + m.away;
+  const ko = formatKickoff(m.kickoff);
+  document.getElementById('pred-modal-sub').textContent = ko.date + (ko.time ? ' · ' + ko.time : '') + (m.venue ? ' · ' + m.venue : '');
+  document.getElementById('pred-home-label').textContent = m.home;
+  document.getElementById('pred-away-label').textContent = m.away;
+  const savedName = localStorage.getItem('wc2026_pred_name') || '';
+  document.getElementById('pred-name-input').value = savedName;
+  const existing = (predData[matchId] || []).find(function(p){ return p.name.toLowerCase() === savedName.toLowerCase(); });
+  document.getElementById('pred-home-score').value = existing ? existing.home : 1;
+  document.getElementById('pred-away-score').value = existing ? existing.away : 0;
+  document.getElementById('pred-modal-bg').classList.add('open');
+  setTimeout(function(){ const ni = document.getElementById('pred-name-input'); if (ni && !savedName) ni.focus(); }, 50);
+}
+
+function closePredModal() {
+  document.getElementById('pred-modal-bg').classList.remove('open');
+  predModalMatchId = null;
+}
+
+async function submitPrediction() {
+  const nameEl = document.getElementById('pred-name-input');
+  const name = nameEl.value.trim();
+  if (!name) { nameEl.focus(); nameEl.style.borderColor = '#f87171'; return; }
+  nameEl.style.borderColor = '';
+  const home = Math.max(0, parseInt(document.getElementById('pred-home-score').value) || 0);
+  const away = Math.max(0, parseInt(document.getElementById('pred-away-score').value) || 0);
+  localStorage.setItem('wc2026_pred_name', name);
+
+  const btn = document.querySelector('#pred-modal-bg .btn-save');
+  if (btn) { btn.disabled = true; btn.textContent = 'Submitting…'; }
+
+  try {
+    const r = await fetch(SB_URL + '/rest/v1/wc2026_predictions', {
+      method: 'POST',
+      headers: Object.assign({}, SB_HEADERS, { 'Prefer': 'resolution=merge-duplicates' }),
+      body: JSON.stringify({ match_id: predModalMatchId, name: name, home_score: home, away_score: away })
+    });
+    if (!r.ok) { const t = await r.text(); throw new Error(t); }
+    closePredModal();
+    await loadAllPredictions();
+  } catch(e) {
+    if (btn) { btn.disabled = false; btn.textContent = 'Submit Prediction'; }
+    alert('Could not save prediction — check your connection.\n' + e.message);
+  }
+}
+
+async function openCPredModal(matchId) {
+  const m = MATCHES.find(function(x){ return x.id === matchId; });
+  if (!m) return;
+  document.getElementById('cpred-title').textContent = m.home + ' vs ' + m.away;
+  document.getElementById('cpred-sub').textContent = 'Loading…';
+  document.getElementById('cpred-content').innerHTML = '<p style="text-align:center;color:#94a3b8;padding:24px">Fetching predictions…</p>';
+  document.getElementById('cpred-modal-bg').classList.add('open');
+
+  try {
+    const r = await fetch(SB_URL + '/rest/v1/wc2026_predictions?match_id=eq.' + matchId + '&select=*&order=submitted_at.asc', { headers: SB_HEADERS });
+    if (!r.ok) throw new Error('HTTP ' + r.status);
+    const rows = await r.json();
+    const preds = rows.map(function(row){ return { name: row.name, home: row.home_score, away: row.away_score }; });
+    document.getElementById('cpred-sub').textContent = preds.length + ' prediction' + (preds.length !== 1 ? 's' : '') + ' submitted';
+
+    const tally = {};
+    preds.forEach(function(p){
+      const k = p.home + '-' + p.away;
+      if (!tally[k]) tally[k] = { label: p.home + ' – ' + p.away, count: 0, names: [] };
+      tally[k].count++;
+      tally[k].names.push(p.name);
+    });
+    const sorted = Object.values(tally).sort(function(a,b){ return b.count - a.count; });
+
+    let html = '';
+    if (preds.length === 0) {
+      html = '<p style="color:#94a3b8;text-align:center;padding:24px 0">No predictions yet. Be the first!</p>';
+    } else {
+      const top = sorted[0];
+      html += '<div class="cpred-top"><div class="cpred-top-score">' + top.label + '</div><div class="cpred-top-sub">Most predicted · ' + top.count + ' vote' + (top.count !== 1 ? 's' : '') + '</div></div>';
+      html += '<div class="cpred-section-label">All Predictions</div>';
+      sorted.forEach(function(s){
+        html += '<div class="cpred-row"><div class="cpred-row-score">' + s.label + '</div><div class="cpred-row-names">' + s.names.join(', ') + '</div><div class="cpred-row-count">' + s.count + '</div></div>';
+      });
+    }
+    document.getElementById('cpred-content').innerHTML = html;
+  } catch(e) {
+    document.getElementById('cpred-sub').textContent = 'Error loading';
+    document.getElementById('cpred-content').innerHTML = '<p style="color:#f87171;text-align:center;padding:24px">Failed to load predictions. Check connection.</p>';
+  }
+}
+
+function closeCPredModal() {
+  document.getElementById('cpred-modal-bg').classList.remove('open');
+}
+
+function renderPredictionsTab() {
+  const rounds = [
+    { label: 'Quarter-finals', md: 'QF' },
+    { label: 'Semi-finals',    md: 'SF' },
+    { label: 'Third Place',    md: '3P' },
+    { label: 'Final',          md: 'F'  },
+  ];
+  const TEAM_FLAGS = {};
+  Object.keys(TEAMS).forEach(function(k){ TEAM_FLAGS[k] = TEAMS[k].flag || '\u{1F3F3}️'; });
+  function flag(name){ return TEAM_FLAGS[name] || '\u{1F3F3}️'; }
+  const isTBDName = function(n){ return !n || n === 'TBD' || n.includes('Winner'); };
+
+  let html = '';
+  rounds.forEach(function(r){
+    const matches = MATCHES.filter(function(m){ return m.md === r.md; });
+    if (!matches.length) return;
+    html += '<div class="pred-round-label">' + r.label + '</div>';
+    matches.forEach(function(m){
+      const ko = formatKickoff(m.kickoff);
+      const preds = predData[m.id] || [];
+      const tbd = isTBDName(m.home) || isTBDName(m.away);
+      const tally = {};
+      preds.forEach(function(p){ const k = p.home+'-'+p.away; tally[k]=(tally[k]||0)+1; });
+      const topEntry = Object.entries(tally).sort(function(a,b){ return b[1]-a[1]; })[0];
+
+      html += '<div class="pred-match-card">' +
+        '<div class="pred-teams-row">' +
+          '<div class="pred-team"><span class="pred-team-flag">' + (tbd?'❓':flag(m.home)) + '</span><span class="pred-team-name">' + m.home + '</span></div>' +
+          '<div class="pred-vs-sep">vs</div>' +
+          '<div class="pred-team pred-team-away"><span class="pred-team-flag">' + (tbd?'❓':flag(m.away)) + '</span><span class="pred-team-name">' + m.away + '</span></div>' +
+        '</div>' +
+        '<div class="pred-match-meta">' +
+          '<span class="pred-meta-pill">' + ko.date + (ko.time?' · '+ko.time:'') + '</span>' +
+          (m.venue?'<span class="pred-meta-pill">'+m.venue+'</span>':'') +
+          (preds.length>0?'<span class="pred-meta-pill green">'+preds.length+' prediction'+(preds.length!==1?'s':'')+'</span>':'') +
+          (topEntry?'<span class="pred-meta-pill gold">Top pick: '+topEntry[0].replace('-',' – ')+'</span>':'') +
+        '</div>' +
+        '<div class="pred-actions">' +
+          (tbd?'<span style="font-size:12px;color:#64748b;padding:5px 0">Teams TBD</span>':'<button class="btn btn-save" style="padding:5px 14px;font-size:12px" onclick="openPredModal('+m.id+')">✏️ Predict</button>') +
+          (preds.length>0?'<button class="btn btn-cancel" style="padding:5px 14px;font-size:12px" onclick="openCPredModal('+m.id+')">👥 View ('+preds.length+')</button>':'') +
+        '</div>' +
+      '</div>';
+    });
+  });
+  document.getElementById('predictions-content').innerHTML = html;
+}
+
+document.addEventListener('keydown', function(e) {
+  if (e.key === 'Escape') { closePredModal(); closeCPredModal(); }
+});
 
 // ═══════════════════════════════════════════════════════
 //  INIT
