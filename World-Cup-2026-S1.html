@@ -840,9 +840,9 @@ const MATCHES = [
   {id:122,gr:'-',md:'QF', kickoff:'2026-07-11T21:00:00Z',home:'TBD',away:'TBD',venue:''},
   {id:123,gr:'-',md:'QF', kickoff:'2026-07-10T19:00:00Z',home:'Spain',away:'Belgium',venue:'Los Angeles'},
   {id:124,gr:'-',md:'QF', kickoff:'2026-07-12T21:00:00Z',home:'Argentina',away:'Switzerland',venue:'Miami'},
-  {id:125,gr:'-',md:'SF', kickoff:'2026-07-14T21:00:00Z',home:'TBD',away:'TBD',venue:''},
+  {id:125,gr:'-',md:'SF', kickoff:'2026-07-14T21:00:00Z',home:'France',away:'Spain',venue:'Dallas (Arlington)'},
   {id:126,gr:'-',md:'SF', kickoff:'2026-07-15T21:00:00Z',home:'TBD',away:'TBD',venue:''},
-  {id:127,gr:'-',md:'3P', kickoff:'2026-07-18T17:00:00Z',home:'TBD',away:'TBD',venue:'Miami'},
+  {id:127,gr:'-',md:'3P', kickoff:'2026-07-18T17:00:00Z',home:'France',away:'England',venue:'Miami'},
   {id:128,gr:'-',md:'F',  kickoff:'2026-07-19T20:00:00Z',home:'TBD',away:'TBD',venue:'New York/New Jersey',note:'FINAL'},
 ];
 
@@ -1112,6 +1112,7 @@ async function syncAll() {
   if (updated) saveScores();
   lastSyncTime = new Date();
   try { localStorage.setItem('wc2026_lastsync', lastSyncTime.toISOString()); } catch(e) {}
+  applyKnownResults();
   updateApiBtn('ok');
   renderAll();
 }
@@ -1857,6 +1858,27 @@ function applyKnownPenaltyResults() {
   });
 }
 applyKnownPenaltyResults();
+
+// ── Known completed results (hardcoded when ESPN API lags) ──────────────────
+const KNOWN_RESULTS = [
+  { id:125, home:'France', away:'Spain', homeScore:0, awayScore:2 },
+];
+function applyKnownResults() {
+  KNOWN_RESULTS.forEach(function(kr) {
+    var m = MATCHES.find(function(x){ return x.id === kr.id; });
+    if (!m) return;
+    // Update team names
+    m.home = kr.home;
+    m.away = kr.away;
+    // Set score (always override — ESPN shows TBD teams with 0-0)
+    scores[kr.id] = { home: kr.homeScore, away: kr.awayScore };
+    // Mark as full time
+    matchPhases[kr.id] = { phase: 'FT', elapsed: '90' };
+  });
+}
+
+applyKnownResults();
+
 // Apply VENUE_MAP to matches that don't already have a venue
 MATCHES.forEach(function(m) {
   if (!m.venue && VENUE_MAP[m.id]) m.venue = VENUE_MAP[m.id];
